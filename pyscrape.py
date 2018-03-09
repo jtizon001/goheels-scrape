@@ -25,25 +25,35 @@ def main():
 	#pprint.pprint(columns)
 	#print(columns)
 
-	rows=play_table.css('tr')[1:]#('tr:not(:nth-child(1))')#both 0s were 1s
+	rows=play_table.css('tr')[1:]
 	#pprint.pprint(rows)
 	
-
+	player_dict={}
 	player_num_dict={}
 	player_data=[]
 	counter=0
-	for x in rows:
-		player_num=x.css('td')[0].xpath('string()').extract()[0]
 
+	#iterates over each player on the page
+
+	for x in rows:
+
+		#each variable is a 
+		player_num=x.css('td')[0].xpath('string()').extract()[0]
 		player_name=x.css('td')[1].xpath('string()').extract()[0]
 		print(player_num+' '+player_name)
 		player_pos=x.css('td')[2].xpath('string()').extract()[0]
+		player_hight=x.css('td')[3].xpath('string()').extract()[0]
+		player_year=x.css('td')[4].xpath('string()').extract()[0]
+		palyer_home=x.css('td')[5].xpath('string()').extract()[0]
 		profile_link=x.css('td')[1]
 		profile_link=profile_link.css('a')
 		profile_link=profile_link.xpath('@href').extract()
 		player_num_data=[]
-		bio=getBio(profile_link[0])
-		img=getImg(profile_link[0])
+
+		reqUrl='http://goheels.com'+profile_link[0]
+		reqR=requests.get(reqUrl,headers={'User-Agent':'UNC Journal Class'})
+		bio=getBio(reqR) #(profile_link[0])
+		img=getImg(reqR) #(profile_link[0])
 		#if counter==0:
 		stats=getStats(profile_link[0])
 		#print(stats)
@@ -56,16 +66,19 @@ def main():
 			'name':player_name,
 			'num':player_num,
 			'position':player_pos,
+			'height':player_hight,
+			'year':player_year,
+			'hometown':palyer_home,
 			'href':profile_link[0],
 			'img':img,
 			'bio':bio,
 			'stats':stats
 		}
 		player_num_dict[player_num]=player_data
+		
 
-	#pprint.pprint(player_num_dict)
-	#print(counter)
-	jsonStr=json.dumps(player_num_dict)
+
+	jsonStr=json.dumps(player_num_dict)   
 	f=open("players.json","w")
 	f.write(jsonStr)
 	f.close
@@ -73,18 +86,18 @@ def main():
 
 
 
-def getBio(s):
-	bioUrl='http://goheels.com'+s
-	bioR=requests.get(bioUrl,headers={'User-Agent':'UNC Journal Class'})
+def getBio(bioR):
+	# bioUrl='http://goheels.com'+s
+	# bioR=requests.get(bioUrl,headers={'User-Agent':'UNC Journal Class'})
 	content=bioR.content.decode('utf-8')
 	sel=scrapy.Selector(text=content)
 	player_bio = sel.css('#sidearm-roster-player-bio').xpath('string()').extract()[0]
 	#print(player_bio)
 	return player_bio
 
-def getImg(s):
-	imgUrl='http://goheels.com'+s
-	imgR=requests.get(imgUrl,headers={'User-Agent':'UNC Journal Class'})
+def getImg(imgR):
+	# imgUrl='http://goheels.com'+s
+	# imgR=requests.get(imgUrl,headers={'User-Agent':'UNC Journal Class'})
 	content=imgR.content.decode('utf-8')
 	sel=scrapy.Selector(text=content)
 	player_image = sel.css('.sidearm-roster-player-image img').xpath("@src").extract()[0]
@@ -127,15 +140,6 @@ def getStats(s):
 	).format(**clean_objs[0])
 
 	resp = requests.get(stats_url, headers={'User-Agent':'UNC Journal Class'})
-	#sel = scrapy.Selector(text=resp.content.decode('utf-8'))
-	#stats=sel.xpath('string()').extract()
-	#print('111111111111111111')
-	#pprint.pprint(stats)
-	#stats=cleanStats(stats)
-	# for x in range(len(stats)):
-	# 	stats[x]=cleanStats(stats[x])
-
-	# pprint.pprint(stats)
 
 	txt=json.loads(resp.content.decode("utf-8"))
 	#pprint.pprint(txt)
@@ -185,13 +189,6 @@ def pasrseStats(player):
 			 			i+=1
 			 			#print(s)
 			 			
-
-			 	# for i,d in enumerate(r.css('td'),0):
-			 	# 	print(i)
-			 	# 	#s[cols[i].lower()] = d.xpath('string()').extract()[0]
-			 	# 	s[cols[i].lower()] = d.xpath('string()').extract()[0]
-			 	# 	print(s)	
-			 		#print(s[cols[i].lower()])
 			 	yr = r.css('th').xpath('string()')
 			 	#print(yr)
 			 	if yr:
@@ -210,124 +207,23 @@ def pasrseStats(player):
 			existing[title] = these_stats
 			stats[raw_key] = existing
 		#pprint.pprint(stats)
-	player['stats']=stats
+	#pprint.pprint(stats)
+	#if len(stats)>0:
+	if 'current_stats' in stats:
+		del stats['current_stats']
+
+	if 'gamehigh_stats' in stats:
+		del stats['gamehigh_stats']
+
+	#pprint.pprint(stats)
+	if 'career_stats' in stats:
+		player['stats']=stats['career_stats']
+
+	else: 
+		player['stats']=stats
+
 	return player['stats']
-
-
-
-
-	# title=sel.css('caption').xpath('string()').extract()[0]
-	# print(title)
-	# cols=sel.css('tr')[1].css('th').xpath('string()').extract()
-	# print('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n')
-	# print(cols)
-	#pprint.pprint(player)
-	#pprint.pprint(player)
-	# for raw_key, raw_val in player['raw_stats'].items():
-	# 	txt = player['raw_stats'][raw_key]
-
-	# 	#print('/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/')
-	# 	#print(txt)
-
-	# 	#print('------------------------------\n'+txt+'\n----------')
-	# 	if not txt:
-	# 		#print('Skipping {} for {}'.format(raw_key, player['Full Name']))
-	# 		continue
 		
-	# 	sel = scrapy.Selector(text=txt)# Get all the tables
-	# 	#print()#.xpath('string()').extract().extract()[0])
-
-
-
-
-	# 	for section in sel.css('section'):
-	# 		title = section.css('h5').xpath('string()').extract()[0]
-	# 		print(title)
-	# 		print('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n')
-	# 		cols = section.css('tr')[0].css('th').xpath('string()').extract()
-	# 		#print(cols)
-	# 		#print('NEW SECTION', title)
-	# 		#print('COLS', cols)
-	# 		these_stats = []
-	# 		#print('TRS', section.css('tr'))
-	# 		for r in section.css('tr')[1:]:
-	# 			#print('row', r.xpath('string()').extract()[0].replace('\r', '').replace('\n', '').strip())
-	# 			s = {}
-	# 			for i, d in enumerate(r.css('td'), 0):
-	# 				s[cols[i].lower()] = d.xpath('string()').extract()[0]
-	# 			yr = r.css('th').xpath('string()')
-	# 			if yr:
-	# 				yr = yr.extract()[0]
-	# 				if yr.lower() in ('total', 'season'):
-	# 					#print('SKIPPING...')
-	# 					continue
-	# 				#print('THE YR IS', yr)
-	# 				s['year'] = yr
-	# 			these_stats.append(s)
-	# 			#print('THE STATS ARE', these_stats)
-	# 		existing = stats.get(raw_key, {})
-	# 		existing[title] = these_stats
-	# 		# print(existing)
-	# 		# print('\n\n\n\n\n\n\n\n\n\n\n\n\n')
-	# 		stats[raw_key] = existing
-
-	# 		#pprint.pprint(existing)
-
-	# print('----------------------------------------------------------------------------------------')
-	# #pprint.pprint(stats)
-	# player['stats'] = stats
-	# # print('00000000000000000000000000')
-	# # pprint.pprint(player['stats'])
-	# return(player['stats'])
-
-
-
-	# #print(txt)
-	# txt=str(txt)
-	# sel=scrapy.Selector(text=txt)
-	# stats={}
-	# for section in sel.css('section'):
-	# 	print('------------------')
-	# 	title=section.css('h5').xpath('string()').extract()[0]
-	# 	cols=section.css('tr')[0].css('th').xpath('string()').extract()
-	# 	print('new sec',title)
-	# 	print('cols',cols)
-	# 	these_stats=[]
-	# 	print('TRS', section.css('tr'))
-	# 	for r in section.css('tr')[1:]:
-	# 		print('row',r.xpath('string()').extract()[0].replace('\r','').replace('\n','').strip())
-	# 		s={}
-	# 		for i, d in enumerate(r.css('td'),1):
-	# 			s[cols[i].lower()]=d.xpath('string()').extract()[0]
-	# 		yr=r.css('th').xpath('string()')
-	# 		if yr:
-	# 			yr=yr.extract()[0]
-	# 			if yr.lower() in ('total','season'):
-	# 				print('SKIPPING...')
-	# 				continue
-	# 			print('THE YER IS', yr)
-	# 			s['year']=yr
-
-	# 		these_stats.append(s)
-	# 		pprint.pprint('THE STATS ARE-----------------', these_stats)
-	# 	# existing=stats.get(raw_key,{})
-
-
-
-
-
-	# # print('222222222222222222')
-
-	# # pprint.pprint(sel) #["current_stats"]#try career_stats
-	# #print(sel)
-	# return None #stats
-
-def cleanStats(s):
-	s=s.replace('\\r\\n','')
-	s=s.strip()
-	return s
-
-	
 
 
 
